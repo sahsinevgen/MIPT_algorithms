@@ -98,8 +98,43 @@ ostream& operator << (ostream &out, Point<T> a) {
 }
 
 template<typename T>
+class Segment {
+public:
+    Point<T> first;
+    Point<T> second;
+    
+    Segment() {};
+    Segment(T a, T b, T c, T d): first(a, b), second(c, d) {};
+    Segment(Point<T> a, Point<T> b): first(a), second(b) {};
+
+    bool is_point() const {
+        return first == second;
+    }
+};
+
+template<typename T>
+istream& operator >> (istream &in, Segment<T> &a) {
+    in >> a.first >> a.second;
+    return in;
+}
+
+template<typename T>
+ostream& operator << (ostream &out, Segment<T> a) {
+    out << a.first << " " << a.second;
+    return out;
+}
+
+template<typename T>
 T dot(const Point<T> &a, const Point<T> &b) {
     return a.x * b.x + a.y * b.y;
+}
+
+template<typename T>
+int sign(T a) {
+    if (a == 0) {
+        return 0;
+    }
+    return (a > 0 ? 1 : -1);
 }
 
 template<typename T>
@@ -122,6 +157,11 @@ bool Is_on_segment(const Point<T> &a, const Point<T> &b, const Point<T> &c) {
 }
 
 template<typename T>
+bool Is_on_segment(const Segment<T> &a, const Point<T> &c) {
+    return Is_on_segment(a.first, a.second, c);
+}
+
+template<typename T>
 bool Is_in_polygon(const vector<Point<T> > &polygon, const Point<T> &a) {
     if (a == polygon[0]) {
         return true;
@@ -133,14 +173,12 @@ bool Is_in_polygon(const vector<Point<T> > &polygon, const Point<T> &a) {
         int m = (l + r) / 2;
         Point<T> ab = a - polygon[0];
         Point<T> ac = polygon[m] - polygon[0];
-        //cout << "\n" << m << "\n" << ab << "\n" << ac << "\n" << cross(ac, ab) << endl;
         if (cross(ac, ab) < 0) {
             r = m;
         } else {
             l = m;
         }
     }
-    //cout << l << endl;
     if (l == 0 || l == sz - 1 && !Is_on_segment(polygon[0], polygon[sz - 1], a)) {
         return false;
     }
@@ -154,19 +192,36 @@ bool Is_in_polygon(const vector<Point<T> > &polygon, const Point<T> &a) {
     return true;
 }
 
+template<typename T>
+bool are_segments_cross(Segment<T> a, Segment<T> b) {
+    class help {
+    public:    
+        bool static intersect(T a, T b, T c, T d) {
+            if (a > b) swap(a, b);
+            if (c > d) swap(c, d);
+            return max(a, c) <= min(b, d);
+        }
+    };
+    return help::intersect(a.first.x, a.second.x, b.first.x, b.second.x) &&
+           help::intersect(a.first.y, a.second.y, b.first.y, b.second.y) &&
+           sign(cross(a.first  - b.first, b.second - b.first)) * 
+           sign(cross(a.second - b.first, b.second - b.first)) <= 0 && 
+           sign(cross(b.first  - a.first, a.second - a.first)) *
+           sign(cross(b.second - a.first, a.second - a.first)) <= 0;
+}
+
 int main() {
-    int n, m, k;
-    cin >> n >> m >> k;
-    vector<Point<int64_t> > polygon(n);
+    int n;
+    cin >> n;
+    vector<Segment<int64_t> > q(n);
     for (int i = 0; i < n; i++) {
-        cin >> polygon[i];
+        cin >> q[i];
     }
-    int cnt = 0;
-    for (int i = 0; i < m; i++) {
-        Point<int64_t> a;
-        cin >> a;
-        cnt += Is_in_polygon(polygon, a);
-        //cout << (Is_in_polygon(polygon, a) ? "YES" : "NO") << endl;
-    } 
-    cout << (cnt >= k ? "YES\n" : "NO\n");
+    int ans = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            ans += are_segments_cross(q[i], q[j]);
+        }
+    }
+    cout << ans << endl;
 }
